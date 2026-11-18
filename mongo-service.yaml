@@ -1,0 +1,28 @@
+
+apiVersion: v1
+kind: Service
+
+metadata:
+  # Kubernetes Service name (DNS hostname)
+  name: mongo-service
+  namespace: taskops
+  labels:
+    app: mongo-service
+
+spec:
+  # Internal access only (not Windows)
+  type: ClusterIP
+
+  # Find Pods having app: mongo
+  selector:
+    app: mongo
+
+  ports:
+    # Port Spring Boot connects to
+    - port: 27018
+
+      # Forward to MongoDB container port
+      targetPort: 27017
+
+      # MongoDB uses TCP
+      protocol: TCP

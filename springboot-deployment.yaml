@@ -1,0 +1,78 @@
+
+apiVersion: apps/v1
+kind: Deployment
+
+metadata:
+  name: springboot-deploy
+  namespace: taskops
+  labels:
+    app: springboot
+
+spec:
+  replicas: 2
+
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      # Allow one extra Pod during deployment
+      maxSurge: 1
+
+      # Keep both existing replicas available
+      maxUnavailable: 0   
+
+  selector:
+    matchLabels:
+      app: springboot
+
+  template:
+    metadata:
+      labels:
+        app: springboot
+
+    spec:
+      containers:
+        - name: springboot-pod
+
+          # Existing Spring Boot WAR + Tomcat image
+          image: taskops-api:IMAGE_TAG
+          imagePullPolicy: Never
+
+          ports:
+            # Tomcat internal port
+            - containerPort: 8080
+
+          env:
+            # MongoDB Kubernetes Service
+            - name: SPRING_MONGODB_URI
+              value: "mongodb://mongo-service:27018/taskops"
+
+            # Enable Spring Boot Actuator probe endpoints
+            - name: MANAGEMENT_ENDPOINT_HEALTH_PROBES_ENABLED
+              value: "true"
+
+          # Wait for Spring Boot to start
+          startupProbe:
+            httpGet:
+              path: /actuator/health/liveness
+              port: 8080
+            periodSeconds: 5
+            timeoutSeconds: 3
+            failureThreshold: 24
+
+          # Check whether Pod can receive traffic
+          readinessProbe:
+            httpGet:
+              path: /actuator/health/readiness
+              port: 8080
+            periodSeconds: 10
+            timeoutSeconds: 3
+            failureThreshold: 3
+
+          # Restart container if application becomes unhealthy
+          livenessProbe:
+            httpGet:
+              path: /actuator/health/liveness
+              port: 8080
+            periodSeconds: 15
+            timeoutSeconds: 3
+            failureThreshold: 3

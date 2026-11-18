@@ -1,0 +1,52 @@
+
+apiVersion: apps/v1
+kind: Deployment
+
+metadata:
+  # Deployment name
+  name: mongo-deploy
+  namespace: taskops
+  labels:
+    app: mongo
+
+spec:
+  # Deployment manages Pods with this label
+  selector:
+    matchLabels:
+      app: mongo
+
+  # Run one MongoDB Pod
+  replicas: 1
+
+  # Stop old Pod before starting replacement
+  # Safer for our single-instance MongoDB
+  strategy:
+    type: Recreate
+
+  template:
+    metadata:
+      # Service selector must match this label
+      labels:
+        app: mongo
+
+    spec:
+      containers:
+        - name: mongo-pod
+
+          # Official MongoDB Docker image
+          image: mongo:7
+
+          ports:
+            # MongoDB listens on this port
+            - containerPort: 27017
+
+          # docker run -v ...:/data/db
+          volumeMounts:
+            - name: mongo-storage
+              mountPath: /data/db
+
+      # Use our Kubernetes PVC for persistence
+      volumes:
+        - name: mongo-storage
+          persistentVolumeClaim:
+            claimName: pvc

@@ -1,0 +1,25 @@
+
+apiVersion: v1
+kind: Service
+
+metadata:
+  name: springboot-service
+  namespace: taskops
+  labels:
+    app: springboot
+
+spec:
+  # Internal Kubernetes Service
+  type: ClusterIP
+
+  # Find Pods labeled app: springboot
+  selector:
+    app: springboot
+
+  ports:
+    # Other Pods connect to springboot-service:8085
+    - port: 8085
+
+      # Forward to Tomcat container port 8080
+      targetPort: 8080
+      protocol: TCP

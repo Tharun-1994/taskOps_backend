@@ -1,0 +1,12 @@
+
+# Kubernetes API version
+apiVersion: v1
+
+# Resource type we want to create
+kind: Namespace
+
+# Resource identification
+metadata:
+
+  # Our application's namespace
+  name: taskops
