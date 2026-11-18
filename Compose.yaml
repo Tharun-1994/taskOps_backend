@@ -1,0 +1,107 @@
+# Docker Compose project name
+name: taskops
+
+# Services (containers) required for TaskOps
+services:
+  
+  # MongoDB database service
+  mongo:
+
+    # docker run mongo:7
+    # Use MongoDB 7 image
+    image: mongo:7
+
+    # docker run -p 127.0.0.1:27017:27017
+    # HOST_IP:HOST_PORT:CONTAINER_PORT
+    # Spring Boot on Windows uses localhost:27017
+    ports:
+      - "127.0.0.1:27017:27017"
+
+    # docker run -v taskops_mongo_data:/data/db
+    # Persist database files outside the container
+    volumes:
+      - mongo_data:/data/db
+
+    # docker run --health-cmd="..."
+    # Check whether MongoDB responds to ping
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "quit(db.adminCommand({ ping: 1 }).ok ? 0 : 1)"]
+
+      # docker run --health-interval=10s
+      interval: 10s
+
+      # docker run --health-timeout=5s
+      timeout: 5s
+
+      # docker run --health-retries=5
+      retries: 5
+
+      # docker run --health-start-period=20s
+      start_period: 20s
+
+    # docker run --restart unless-stopped
+    restart: unless-stopped
+
+
+  # Spring Boot WAR deployed in Tomcat
+  backend:
+
+    # Use our already-built Spring Boot + Tomcat image
+    image: taskops-api:devwar
+
+    # Windows 8082 -> Tomcat 8080
+    ports:
+      - "127.0.0.1:8082:8080"
+
+    # Spring Boot connects to MongoDB using Compose DNS
+    environment:
+      SPRING_MONGODB_URI: mongodb://mongo:27017/taskops
+
+    # Wait for MongoDB during startup
+    depends_on:
+      mongo:
+        condition: service_healthy
+
+    # docker run --health-cmd="curl ..."
+    # Check Spring Boot Actuator inside the container
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS --max-time 5 http://localhost:8080/actuator/health > /dev/null || exit 1"]
+
+      # docker run --health-interval=10s
+      interval: 10s
+
+      # docker run --health-timeout=5s
+      timeout: 5s
+
+      # docker run --health-retries=3
+      retries: 3
+
+      # docker run --health-start-period=60s
+      # Allow Tomcat and Spring Boot time to start
+      start_period: 60s
+
+    # docker run --restart unless-stopped
+    restart: unless-stopped
+  
+  # React frontend served by Nginx
+  frontend:
+
+    # docker run taskops-frontend:dev
+    # Use our already-built frontend image
+    image: taskops-frontend:v2
+
+    # docker run -p 127.0.0.1:3000:80
+    # Windows 3000 -> Nginx container 80
+    ports:
+      - "127.0.0.1:3000:80"
+
+    # Start frontend container only after backend is started
+    depends_on:
+      - backend
+
+    # docker run --restart unless-stopped
+    restart: unless-stopped
+
+# Named volumes used by services
+volumes:
+  mongo_data:

@@ -1,0 +1,15 @@
+
+# Local Maven build output
+target/
+
+# Git and IDE files
+.git/
+.idea/
+.vscode/
+
+# Local config and logs
+.env
+*.log
+
+# Compose file is not needed in the image build
+compose.yaml
